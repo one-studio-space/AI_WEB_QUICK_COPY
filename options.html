@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI Quick Copy — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="badge">AI QUICK COPY · v1.1.2</div>
+    <h1>Settings</h1>
+    <p>Copy response AI gần nhất dưới dạng Markdown.</p>
+
+    <section class="card">
+      <div class="row">
+        <span>Windows / Linux</span>
+        <kbd>Ctrl</kbd><b>+</b><kbd>Q</kbd>
+      </div>
+      <div class="row">
+        <span>macOS</span>
+        <kbd>Command</kbd><b>+</b><kbd>Q</kbd>
+      </div>
+      <div class="row">
+        <span>Output</span>
+        <strong>Markdown</strong>
+      </div>
+      <div class="row">
+        <span>Supported</span>
+        <strong>ChatGPT · Gemini · Grok · Claude</strong>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Hotkey không chạy?</h2>
+      <p>
+        Chrome/Edge có thể giữ một số shortcut cho chính trình duyệt.
+        Bạn có thể đổi shortcut của extension tại trang quản lý shortcuts.
+      </p>
+      <button id="shortcuts">Mở Extension Shortcuts</button>
+    </section>
+
+    <section class="card">
+      <h2>Markdown v1.1</h2>
+      <p>
+        Extension cố gắng giữ heading, quote, list, link, emphasis,
+        inline code, fenced code block và table khi paste.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Privacy</h2>
+      <p>
+        Không có API key, server, analytics hoặc upload dữ liệu.
+        Response được xử lý ngay trong tab và gửi thẳng vào clipboard.
+      </p>
+    </section>
+
+    <footer>AI Quick Copy v1.1.2</footer>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>
