@@ -5,6 +5,7 @@
 
 (() => {
   const AQC = window.AIQuickCopy;
+  const Settings = window.AIQuickCopySettings;
   const adapters = window.AIQuickCopyAdapters || {};
 
   function getAdapter() {
@@ -37,14 +38,34 @@
       return;
     }
 
-    const markdown = AQC.toMarkdown(element);
+    const settings = await Settings.load();
+
+    const markdown = AQC.toMarkdown(element, {
+      headingOffset: settings.blockMode ? AQC.BLOCK_HEADING_OFFSET : 0
+    });
 
     if (!markdown) {
       AQC.showToast("Không trích xuất được response.", "error");
       return;
     }
 
-    await AQC.copyText(markdown);
+    if (!settings.blockMode) {
+      await AQC.copyText(markdown);
+      return;
+    }
+
+    const identity = {
+      id: adapter.id,
+      name: adapter.name,
+      icon: adapter.icon,
+      role: settings.roles[adapter.id] || "",
+      host: window.location.hostname.replace(/^www\./, "")
+    };
+
+    await AQC.copyText(
+      AQC.toBlock(markdown, identity),
+      `⚡ Đã copy · ${AQC.blockTitle(identity)}`
+    );
   }
 
   chrome.runtime.onMessage.addListener((message) => {

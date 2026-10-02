@@ -8,7 +8,7 @@
 </head>
 <body>
   <main class="shell">
-    <div class="badge">AI QUICK COPY · v1.1.3</div>
+    <div class="badge">AI QUICK COPY · v1.2.0</div>
     <h1>Settings</h1>
     <p>Copy response AI gần nhất dưới dạng Markdown.</p>
 
@@ -32,6 +32,31 @@
     </section>
 
     <section class="card">
+      <h2>Định danh AI</h2>
+      <p>
+        Khi bật, mỗi lần copy sẽ được bọc trong một block có tên AI ở đầu và cuối,
+        để khi dán nhiều câu trả lời vào cùng một file Markdown vẫn biết đoạn nào do AI nào viết.
+      </p>
+
+      <label class="toggle">
+        <input type="checkbox" id="blockMode">
+        <span>Copy kèm định danh AI (header + end of answer)</span>
+      </label>
+
+      <fieldset id="roles">
+        <legend>Vai trò của từng AI <small>(để trống = chỉ hiện tên AI)</small></legend>
+        <label class="role"><span>🟩 ChatGPT</span><input type="text" data-role="chatgpt" placeholder="vd: Dreamer"></label>
+        <label class="role"><span>🟦 Gemini</span><input type="text" data-role="gemini" placeholder="vd: Secretary"></label>
+        <label class="role"><span>⬛ Grok</span><input type="text" data-role="grok" placeholder="vd: Critic Unit"></label>
+        <label class="role"><span>🟧 Claude</span><input type="text" data-role="claude" placeholder="vd: Advisor"></label>
+      </fieldset>
+
+      <p class="preview-label">Xem trước</p>
+      <pre id="preview"></pre>
+      <p id="status" class="status" role="status"></p>
+    </section>
+
+    <section class="card">
       <h2>Hotkey không chạy?</h2>
       <p>
         Chrome/Edge có thể giữ một số shortcut cho chính trình duyệt.
@@ -41,7 +66,7 @@
     </section>
 
     <section class="card">
-      <h2>Markdown v1.1</h2>
+      <h2>Markdown</h2>
       <p>
         Extension cố gắng giữ heading, quote, list, link, emphasis,
         inline code, fenced code block và table khi paste.
@@ -53,11 +78,13 @@
       <p>
         Không có API key, server, analytics hoặc upload dữ liệu.
         Response được xử lý ngay trong tab và gửi thẳng vào clipboard.
+        Extension chỉ lưu các cài đặt trên trang này, không lưu nội dung đã copy.
       </p>
     </section>
 
-    <footer>AI Quick Copy v1.1.3</footer>
+    <footer>AI Quick Copy v1.2.0</footer>
   </main>
+  <script src="settings.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

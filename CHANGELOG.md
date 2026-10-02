@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.0
+- Added AI identity blocks: each copy is wrapped with the AI name, optional role, source and timestamp at the top, plus an "End of answer" footer. On by default.
+- Headings inside the response are shifted down two levels to nest under the block title.
+- Settings page: toggle identity blocks and set a role per AI (e.g. Secretary, Dreamer, Critic Unit). Saved automatically.
+- Clicking the toolbar icon now opens the settings page.
+- Toast shows which AI the response was copied from.
+- Added the `storage` permission (settings only; copied content is never stored).
+
 ## 1.1.3
 - Changed the macOS shortcut from `Command+Q` to `Control+Q` (`MacCtrl+Q`). `Command+Q` quits the browser on macOS.
 - Rewrote README in English.

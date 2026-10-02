@@ -3,6 +3,11 @@
  * Responsibility: browser-level command routing only.
  */
 
+// Toolbar icon opens the settings page.
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
+});
+
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== "copy-latest-response") return;
 

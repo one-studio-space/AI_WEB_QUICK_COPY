@@ -38,7 +38,7 @@
     return match.replace(/^language-/i, "").replace(/^lang-/i, "");
   };
 
-  const serialize = (root) => {
+  const serialize = (root, { headingOffset = 0 } = {}) => {
     const walk = (node, context = {}) => {
       if (node.nodeType === Node.TEXT_NODE) {
         return escapeInline(node.nodeValue || "");
@@ -69,7 +69,8 @@
       }
 
       if (/^h[1-6]$/.test(tag)) {
-        const level = Number(tag.substring(1));
+        // Shift headings down when the response sits under a block title.
+        const level = Math.min(Number(tag.substring(1)) + headingOffset, 6);
         const content = serializeChildren(node).trim();
         return `\n\n${"#".repeat(level)} ${content}\n\n`;
       }
@@ -230,12 +231,12 @@
     return result;
   };
 
-  AQC.toMarkdown = (element) => {
+  AQC.toMarkdown = (element, options = {}) => {
     if (!element) return "";
 
     const clone = AQC.getClone(element);
     if (!clone) return "";
 
-    return serialize(clone);
+    return serialize(clone, options);
   };
 })();

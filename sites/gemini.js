@@ -6,6 +6,10 @@
   window.AIQuickCopyAdapters = window.AIQuickCopyAdapters || {};
 
   window.AIQuickCopyAdapters.gemini = {
+    id: "gemini",
+    name: "GEMINI",
+    icon: "🟦",
+
     matches(host) {
       return host === "gemini.google.com";
     },

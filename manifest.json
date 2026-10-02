@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "AI Quick Copy",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "description": "Copy the latest AI response as Markdown from ChatGPT, Gemini, Grok, or Claude.",
   "minimum_chrome_version": "110",
-  "permissions": [],
+  "permissions": ["storage"],
   "background": {
     "service_worker": "service-worker.js"
   },
@@ -34,7 +34,9 @@
       ],
       "js": [
         "core.js",
+        "settings.js",
         "markdown.js",
+        "block.js",
         "sites/chatgpt.js",
         "sites/gemini.js",
         "sites/grok.js",

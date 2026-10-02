@@ -2,7 +2,7 @@
 
 > Copy the latest AI chat response as clean Markdown with a single keyboard shortcut.
 
-![Version](https://img.shields.io/badge/version-1.1.3-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![Manifest](https://img.shields.io/badge/manifest-v3-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -11,6 +11,7 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recen
 ## Table of Contents
 
 - [Features](#features)
+- [AI Identity Blocks](#ai-identity-blocks)
 - [Supported Sites](#supported-sites)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -25,6 +26,7 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recen
 ## Features
 
 - **One shortcut** — press `Ctrl+Q` to copy the latest AI response.
+- **Know who wrote what** — each copy is labeled with the AI's name (and an optional role) at the top and bottom, so answers from different AIs stay distinguishable in one file.
 - **Real Markdown, not plain text** — the response DOM is serialized into Markdown:
 
   | HTML | Markdown |
@@ -44,6 +46,38 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recen
 - **Clean output** — buttons, toolbars, icons and screen-reader labels (e.g. "ChatGPT said:") are stripped.
 - **Resilient detection** — each site has its own adapter with multiple selectors and heuristic fallbacks.
 - **100% local** — no server, no analytics, no network requests.
+
+## AI Identity Blocks
+
+When you paste answers from several AIs into one Markdown file, it is easy to lose track of who wrote what. By default, every copy is wrapped in an identity block:
+
+```markdown
+<!-- aqc:start ai="gemini" role="Secretary" -->
+## 🟦 GEMINI · Secretary
+*gemini.google.com · 2026-10-02 14:32*
+
+...response...
+
+*— End of answer · GEMINI · Secretary —*
+<!-- aqc:end -->
+
+---
+```
+
+- **Header and footer** show the AI name and role, so you can identify the author from either end of a long answer.
+- **Color icons** make blocks easy to scan: 🟩 ChatGPT · 🟦 Gemini · ⬛ Grok · 🟧 Claude.
+- **Timestamp** tells repeated answers from the same AI apart.
+- **Headings inside the response are shifted down two levels** (`#` → `###`) so they nest under the block title.
+- **Hidden `aqc:start` / `aqc:end` comments** do not render, but let scripts split a file back into individual answers.
+
+### Settings
+
+Click the extension's toolbar icon (or open its **Options** page) to:
+
+- Turn identity blocks on or off (on by default). When off, the plain Markdown response is copied as before.
+- Give each AI a role, e.g. *Secretary*, *Dreamer*, *Critic Unit*. Leave it empty to show only the AI name.
+
+Changes are saved automatically and apply to the next copy — no tab reload needed.
 
 ## Supported Sites
 
@@ -80,7 +114,7 @@ The extension is not yet published on the Chrome Web Store. Install it manually:
    | Windows / Linux | `Ctrl` + `Q` |
    | macOS | `Control` + `Q` (not `⌘ Command` — `⌘Q` quits the browser) |
 
-3. A toast confirms the copy. Paste into VS Code, Obsidian, Notion, or any Markdown editor.
+3. A toast confirms the copy and shows which AI was detected. Paste into VS Code, Obsidian, Notion, or any Markdown editor.
 
 The shortcut is ignored while you are typing in an input field, so it never interferes with the chat box.
 
@@ -100,7 +134,8 @@ You can also open this page from the extension's **Options** page.
 - No analytics or tracking
 - No external network requests
 - No access to history, cookies, or bookmarks
-- No extra permissions (`"permissions": []`)
+- The only permission is `storage`, used to save your settings (identity block on/off and AI roles)
+- Copied responses are never stored — they go straight to your clipboard
 
 Content scripts run only on the supported domains declared in [`manifest.json`](manifest.json). Responses are processed inside the tab and written directly to your clipboard.
 
@@ -109,10 +144,12 @@ Content scripts run only on the supported domains declared in [`manifest.json`](
 ```text
 .
 ├── manifest.json        # Extension declaration (Manifest V3)
-├── service-worker.js    # Routes the browser command to the active tab
+├── service-worker.js    # Routes the shortcut to the active tab; icon opens settings
 ├── content.js           # Orchestration + in-page hotkey fallback
 ├── core.js              # Shared DOM helpers, clipboard, toast
 ├── markdown.js          # DOM → Markdown serializer
+├── block.js             # Wraps Markdown in an AI identity block
+├── settings.js          # Settings storage shared with the options page
 ├── sites/
 │   ├── chatgpt.js       # ChatGPT response detection
 │   ├── gemini.js        # Gemini response detection

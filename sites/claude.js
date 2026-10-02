@@ -6,6 +6,10 @@
   window.AIQuickCopyAdapters = window.AIQuickCopyAdapters || {};
 
   window.AIQuickCopyAdapters.claude = {
+    id: "claude",
+    name: "CLAUDE",
+    icon: "🟧",
+
     matches(host) {
       return host === "claude.ai";
     },

@@ -1,4 +1,4 @@
-# AI Quick Copy Architecture — v1.1
+# AI Quick Copy Architecture — v1.2
 
 ```text
 Browser Command
@@ -22,6 +22,9 @@ core.js → clone / cleanup
 markdown.js
       │
       ▼
+block.js (if identity blocks are on)
+      │
+      ▼
 Markdown string
       │
       ▼
@@ -36,6 +39,8 @@ Only answer:
 
 > Where is the latest AI response?
 
+Each adapter also exposes its identity (`id`, `name`, `icon`), used for the identity block.
+
 They should not contain clipboard logic or Markdown serialization.
 
 ### `markdown.js`
@@ -45,6 +50,14 @@ Only answer:
 > How do we convert this response DOM into Markdown?
 
 It should not know whether the source is ChatGPT, Gemini, Grok or Claude.
+
+### `block.js`
+
+Wraps the Markdown in an identity block (AI name, role, source, timestamp, footer). It receives the adapter's `id` / `name` / `icon` as plain data and does not know how the response was found.
+
+### `settings.js`
+
+Loads and saves user settings (`chrome.storage.sync`). Shared by the content scripts and the options page. Only settings are stored, never copied content.
 
 ### `core.js`
 

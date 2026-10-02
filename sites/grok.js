@@ -37,6 +37,10 @@
   }
 
   window.AIQuickCopyAdapters.grok = {
+    id: "grok",
+    name: "GROK",
+    icon: "⬛",
+
     matches(host) {
       return host === "grok.com" || host === "x.com";
     },

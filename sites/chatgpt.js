@@ -165,6 +165,10 @@
   }
 
   window.AIQuickCopyAdapters.chatgpt = {
+    id: "chatgpt",
+    name: "CHATGPT",
+    icon: "🟩",
+
     matches(host) {
       return host === "chatgpt.com" || host === "chat.openai.com";
     },
