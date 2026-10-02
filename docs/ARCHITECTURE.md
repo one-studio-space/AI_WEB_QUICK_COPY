@@ -1,4 +1,4 @@
-# AI Quick Copy Architecture — v1.2
+# AI Quick Copy Architecture — v1.3
 
 ```text
 Browser Command
@@ -10,10 +10,13 @@ service-worker.js
 content.js
       │
       ▼
-site adapter
+selection? ──yes──► selected passage (excerpt)
+      │ no
+      ▼
+site adapter → all responses
       │
       ▼
-DOM response
+core.js → pick the one on screen (else the latest)
       │
       ▼
 core.js → clone / cleanup
@@ -37,7 +40,9 @@ Clipboard
 
 Only answer:
 
-> Where is the latest AI response?
+> Where are the AI responses on this page?
+
+Adapters return every response they find (`findAll()`); they do not decide which one to copy. `core.js` picks the one on screen (`pickInView`), falling back to the latest (`pickLatest`).
 
 Each adapter also exposes its identity (`id`, `name`, `icon`), used for the identity block.
 
@@ -65,6 +70,8 @@ Shared browser utilities:
 
 - visibility checks
 - selector helpers
+- picking the response on screen / the latest one
+- reading the user's selection
 - DOM clone/cleanup
 - clipboard
 - toast

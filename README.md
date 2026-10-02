@@ -1,12 +1,12 @@
 # AI Quick Copy
 
-> Copy the latest AI chat response as clean Markdown with a single keyboard shortcut.
+> Copy the AI chat response you are reading as clean Markdown with a single keyboard shortcut.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![Manifest](https://img.shields.io/badge/manifest-v3-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recent assistant response on ChatGPT, Gemini, Grok, or Claude and puts it on your clipboard as Markdown — headings, lists, code blocks, tables and all.
+AI Quick Copy is a lightweight Chrome / Edge extension that grabs the assistant response you are reading on ChatGPT, Gemini, Grok, or Claude and puts it on your clipboard as Markdown — headings, lists, code blocks, tables and all.
 
 ## Table of Contents
 
@@ -25,7 +25,8 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recen
 
 ## Features
 
-- **One shortcut** — press `Ctrl+Q` to copy the latest AI response.
+- **One shortcut** — press `Ctrl+Q` to copy the AI response you are reading. At the bottom of a chat that is the latest one; scroll up and it copies the older answer on screen.
+- **Copy just a part** — highlight any passage and press `Ctrl+Q` to copy only that, still as Markdown and labeled as an excerpt.
 - **Know who wrote what** — each copy is labeled with the AI's name (and an optional role) at the top and bottom, so answers from different AIs stay distinguishable in one file.
 - **Real Markdown, not plain text** — the response DOM is serialized into Markdown:
 
@@ -116,6 +117,16 @@ The extension is not yet published on the Chrome Web Store. Install it manually:
 
 3. A toast confirms the copy and shows which AI was detected. Paste into VS Code, Obsidian, Notion, or any Markdown editor.
 
+### What gets copied
+
+`Ctrl+Q` picks the content in this order:
+
+1. **Your selection** — if you highlighted text, only that passage is copied (marked as an *excerpt*).
+2. **The response on screen** — the answer crossing the middle of the screen, or the one taking up the most of it.
+3. **The latest response** — when no answer is on screen.
+
+If no response can be recognized (for example after a site redesign), an orange tip appears asking you to highlight the passage and press `Ctrl+Q` again — so you can always copy, even when detection fails.
+
 The shortcut is ignored while you are typing in an input field, so it never interferes with the chat box.
 
 ### Changing the shortcut
@@ -173,9 +184,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full data flow.
 - Check `chrome://extensions/shortcuts` to make sure the shortcut is assigned and not taken by another extension.
 - Click outside the chat input before pressing the shortcut.
 
-**"No AI response found" / wrong content copied**
+**"Không nhận diện được câu trả lời" (response not recognized) / wrong content copied**
 
-AI websites change their DOM frequently. Identify the affected adapter and update its selectors:
+Highlight the passage you want and press `Ctrl+Q` again — selection copying works on every supported site regardless of its layout.
+
+To fix detection permanently: AI websites change their DOM frequently. Identify the affected adapter and update its selectors:
 
 | Site | Adapter |
 |---|---|

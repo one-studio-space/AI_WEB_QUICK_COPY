@@ -14,7 +14,7 @@
       return host === "gemini.google.com";
     },
 
-    findLatest() {
+    findAll() {
       const selectors = [
         "message-content",
         ".model-response-text",
@@ -22,9 +22,7 @@
         ".response-content"
       ];
 
-      return window.AIQuickCopy.pickLatest(
-        window.AIQuickCopy.queryAll(selectors)
-      );
+      return window.AIQuickCopy.queryAll(selectors);
     }
   };
 })();

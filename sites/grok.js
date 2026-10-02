@@ -45,7 +45,7 @@
       return host === "grok.com" || host === "x.com";
     },
 
-    findLatest() {
+    findAll() {
       const selectors = [
         "[data-testid='grok-response']",
         "[data-testid*='grok-response']",
@@ -54,9 +54,13 @@
         "[class*='response-message']"
       ];
 
-      return window.AIQuickCopy.pickLatest(
-        window.AIQuickCopy.queryAll(selectors)
-      ) || genericLatest();
+      const matches = window.AIQuickCopy.queryAll(selectors)
+        .filter(window.AIQuickCopy.isVisible);
+
+      if (matches.length) return matches;
+
+      const fallback = genericLatest();
+      return fallback ? [fallback] : [];
     }
   };
 })();

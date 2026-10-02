@@ -15,6 +15,8 @@
  *   <!-- aqc:end -->
  *
  *   ---
+ *
+ * A copied selection is marked as an excerpt ("· excerpt", "End of excerpt").
  */
 
 (() => {
@@ -36,18 +38,19 @@
     return role ? `${name} · ${role}` : name;
   };
 
-  AQC.toBlock = (markdown, { id, name, icon, role, host, date = new Date() }) => {
+  AQC.toBlock = (markdown, { id, name, icon, role, host, excerpt = false, date = new Date() }) => {
     const title = AQC.blockTitle({ name, role });
     const roleAttr = role ? ` role="${role}"` : "";
+    const partAttr = excerpt ? ' part="excerpt"' : "";
 
     return [
-      `<!-- aqc:start ai="${id}"${roleAttr} -->`,
+      `<!-- aqc:start ai="${id}"${roleAttr}${partAttr} -->`,
       `## ${icon} ${title}`,
-      `*${host} · ${formatTimestamp(date)}*`,
+      `*${host} · ${formatTimestamp(date)}${excerpt ? " · excerpt" : ""}*`,
       "",
       markdown,
       "",
-      `*— End of answer · ${title} —*`,
+      `*— End of ${excerpt ? "excerpt" : "answer"} · ${title} —*`,
       "<!-- aqc:end -->",
       "",
       "---",

@@ -173,12 +173,12 @@
       return host === "chatgpt.com" || host === "chat.openai.com";
     },
 
-    findLatest() {
+    findAll() {
       const candidates = getCandidates();
-      if (candidates.length) {
-        return candidates[candidates.length - 1];
-      }
-      return heuristicFallback();
+      if (candidates.length) return candidates;
+
+      const fallback = heuristicFallback();
+      return fallback ? [fallback] : [];
     }
   };
 })();

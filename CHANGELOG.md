@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0
+- `Ctrl+Q` now copies the response you are reading (the one in the middle of the screen) instead of always the latest. At the bottom of a chat this is still the latest response.
+- Highlight text and press `Ctrl+Q` to copy only that passage, labeled as an excerpt. Partial selections inside code blocks stay fenced code blocks.
+- When no response can be recognized, an orange tip asks you to highlight the passage and press `Ctrl+Q` again.
+- Site adapters now return all responses (`findAll`); choosing which one to copy moved to `core.js`.
+
 ## 1.2.0
 - Added AI identity blocks: each copy is wrapped with the AI name, optional role, source and timestamp at the top, plus an "End of answer" footer. On by default.
 - Headings inside the response are shifted down two levels to nest under the block title.

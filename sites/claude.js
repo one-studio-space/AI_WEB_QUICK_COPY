@@ -14,7 +14,7 @@
       return host === "claude.ai";
     },
 
-    findLatest() {
+    findAll() {
       const selectors = [
         "[data-testid='assistant-message']",
         "[data-testid*='assistant-message']",
@@ -22,9 +22,7 @@
         ".font-claude-message"
       ];
 
-      return window.AIQuickCopy.pickLatest(
-        window.AIQuickCopy.queryAll(selectors)
-      );
+      return window.AIQuickCopy.queryAll(selectors);
     }
   };
 })();
