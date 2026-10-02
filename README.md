@@ -1,158 +1,159 @@
-# AI Quick Copy v1.1.2
+# AI Quick Copy
 
-Chrome/Edge extension để copy **response AI gần nhất dưới dạng Markdown**.
+> Copy the latest AI chat response as clean Markdown with a single keyboard shortcut.
 
-## ✨ v1.1.2 fixes
+![Version](https://img.shields.io/badge/version-1.1.3-blue)
+![Manifest](https://img.shields.io/badge/manifest-v3-green)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-### ChatGPT (layout 2026)
+AI Quick Copy is a lightweight Chrome / Edge extension that grabs the most recent assistant response on ChatGPT, Gemini, Grok, or Claude and puts it on your clipboard as Markdown — headings, lists, code blocks, tables and all.
 
-ChatGPT đang rollout UI mới (Chat / Work) và **bỏ** nhiều attribute cũ:
+## Table of Contents
 
-- `data-message-author-role`
-- `data-testid^="conversation-turn-"`
+- [Features](#features)
+- [Supported Sites](#supported-sites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Privacy & Permissions](#privacy--permissions)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [Changelog](#changelog)
+- [License](#license)
 
-v1.1.2 thêm selector cho layout mới:
+## Features
 
-- `[data-content-search-unit-key$=":assistant"]`
-- `[data-turn-key]`
-- `[data-turn="assistant"]`
-- ưu tiên node `.markdown` / `.prose` để Markdown sạch hơn
+- **One shortcut** — press `Ctrl+Q` to copy the latest AI response.
+- **Real Markdown, not plain text** — the response DOM is serialized into Markdown:
 
-### Markdown (từ v1.1)
+  | HTML | Markdown |
+  |---|---|
+  | `h1`–`h6` | `#`–`######` |
+  | `blockquote` | `>` |
+  | `ul` / `ol` | `-` / `1.` lists (nested supported) |
+  | `strong` / `b` | `**bold**` |
+  | `em` / `i` | `*italic*` |
+  | `del` / `s` | `~~strike~~` |
+  | `code` | `` `inline code` `` |
+  | `pre > code` | fenced code block (with language when available) |
+  | `a` | `[text](url)` |
+  | `table` | Markdown table |
+  | `hr` | `---` |
 
-## ✨ v1.1 fixes
+- **Clean output** — buttons, toolbars, icons and screen-reader labels (e.g. "ChatGPT said:") are stripped.
+- **Resilient detection** — each site has its own adapter with multiple selectors and heuristic fallbacks.
+- **100% local** — no server, no analytics, no network requests.
 
-### Markdown
+## Supported Sites
 
-v1.0 dùng `innerText`, nên:
+| Site | Domains |
+|---|---|
+| ChatGPT | `chatgpt.com`, `chat.openai.com` |
+| Gemini | `gemini.google.com` |
+| Grok | `grok.com`, `x.com` |
+| Claude | `claude.ai` |
+
+## Installation
+
+The extension is not yet published on the Chrome Web Store. Install it manually:
+
+1. Download the source:
+   ```bash
+   git clone https://github.com/one-studio-space/AI_WEB_FAST_COPY.git
+   ```
+   or click **Code → Download ZIP** on GitHub and extract it.
+2. Open `chrome://extensions` (or `edge://extensions` on Microsoft Edge).
+3. Enable **Developer mode**.
+4. Click **Load unpacked** and select the project folder (the one containing `manifest.json`).
+5. Refresh any ChatGPT / Gemini / Grok / Claude tabs that were already open.
+
+> **Note:** After updating the extension, refresh your AI tabs so the new content script is loaded.
+
+## Usage
+
+1. Open a conversation on a supported site.
+2. Press the shortcut:
+
+   | Platform | Shortcut |
+   |---|---|
+   | Windows / Linux | `Ctrl` + `Q` |
+   | macOS | `Control` + `Q` (not `⌘ Command` — `⌘Q` quits the browser) |
+
+3. A toast confirms the copy. Paste into VS Code, Obsidian, Notion, or any Markdown editor.
+
+The shortcut is ignored while you are typing in an input field, so it never interferes with the chat box.
+
+### Changing the shortcut
+
+If the browser reserves the shortcut, or you prefer a different one, open:
+
+- Chrome: `chrome://extensions/shortcuts`
+- Edge: `edge://extensions/shortcuts`
+
+You can also open this page from the extension's **Options** page.
+
+## Privacy & Permissions
+
+- No API keys
+- No backend server
+- No analytics or tracking
+- No external network requests
+- No access to history, cookies, or bookmarks
+- No extra permissions (`"permissions": []`)
+
+Content scripts run only on the supported domains declared in [`manifest.json`](manifest.json). Responses are processed inside the tab and written directly to your clipboard.
+
+## Project Structure
 
 ```text
-# Heading
-> Quote
-- List
-```
-
-bị biến thành plain text.
-
-v1.1 thêm `markdown.js` để serialize DOM thành Markdown:
-
-- `h1`–`h6` → `#`–`######`
-- `blockquote` → `>`
-- `ul` / `ol` → Markdown list
-- `strong` / `b` → `**bold**`
-- `em` / `i` → `*italic*`
-- `del` / `s` → `~~strike~~`
-- `code` → inline code
-- `pre > code` → fenced code block
-- `a` → `[text](url)`
-- `table` → Markdown table
-- `hr` → `---`
-
-### ChatGPT
-
-v1.0 phụ thuộc quá nhiều vào một selector.
-
-v1.1 có:
-
-1. nhiều selector chính;
-2. lọc element visible;
-3. tránh nested assistant elements;
-4. heuristic fallback trong `main article` / conversation turns.
-
-## ⌨️ Hotkey
-
-Windows/Linux:
-
-**Ctrl + Q**
-
-macOS:
-
-**Command + Q**
-
-Nếu browser giữ shortcut:
-
-```text
-chrome://extensions/shortcuts
-```
-
-hoặc trên Edge:
-
-```text
-edge://extensions/shortcuts
-```
-
-rồi đổi shortcut.
-
-## 📦 Cài đặt
-
-1. Giải nén ZIP.
-2. Mở `chrome://extensions`.
-3. Bật **Developer mode**.
-4. Chọn **Load unpacked**.
-5. Chọn thư mục `AI_Quick_Copy_v1.1`.
-6. Refresh các tab ChatGPT/Gemini/Grok/Claude đang mở.
-7. Nhấn **Ctrl + Q**.
-
-> Sau khi update extension, nên refresh tab AI để content script v1.1 được nạp lại.
-
-## 🤖 Supported sites
-
-- `chatgpt.com`
-- `chat.openai.com`
-- `gemini.google.com`
-- `grok.com`
-- `x.com`
-- `claude.ai`
-
-## 🧱 Structure
-
-```text
-AI_Quick_Copy_v1.1/
-│
-├── manifest.json
-├── service-worker.js
-├── core.js
-├── markdown.js
-├── content.js
-│
+.
+├── manifest.json        # Extension declaration (Manifest V3)
+├── service-worker.js    # Routes the browser command to the active tab
+├── content.js           # Orchestration + in-page hotkey fallback
+├── core.js              # Shared DOM helpers, clipboard, toast
+├── markdown.js          # DOM → Markdown serializer
 ├── sites/
-│   ├── chatgpt.js
-│   ├── gemini.js
-│   ├── grok.js
-│   └── claude.js
-│
-├── options.html
+│   ├── chatgpt.js       # ChatGPT response detection
+│   ├── gemini.js        # Gemini response detection
+│   ├── grok.js          # Grok response detection
+│   └── claude.js        # Claude response detection
+├── options.html         # Settings page
 ├── options.css
 ├── options.js
-│
-├── README.md
+├── docs/
+│   └── ARCHITECTURE.md  # Architecture overview
 ├── CHANGELOG.md
-└── docs/
-    └── ARCHITECTURE.md
+└── LICENSE
 ```
 
-## 🧩 Responsibility
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full data flow.
 
-| File | Responsibility |
+## Troubleshooting
+
+**Nothing happens when I press the shortcut**
+- Refresh the AI tab after installing or updating the extension.
+- Check `chrome://extensions/shortcuts` to make sure the shortcut is assigned and not taken by another extension.
+- Click outside the chat input before pressing the shortcut.
+
+**"No AI response found" / wrong content copied**
+
+AI websites change their DOM frequently. Identify the affected adapter and update its selectors:
+
+| Site | Adapter |
 |---|---|
-| `manifest.json` | Extension declaration |
-| `service-worker.js` | Browser command routing |
-| `core.js` | Shared DOM + clipboard + toast |
-| `markdown.js` | DOM → Markdown |
-| `content.js` | Main orchestration + fallback hotkey |
-| `sites/chatgpt.js` | ChatGPT response detection |
-| `sites/gemini.js` | Gemini response detection |
-| `sites/grok.js` | Grok response detection |
-| `sites/claude.js` | Claude response detection |
-| `options.*` | Settings page |
+| ChatGPT | `sites/chatgpt.js` |
+| Gemini | `sites/gemini.js` |
+| Grok | `sites/grok.js` |
+| Claude | `sites/claude.js` |
 
-## 🧪 Test
+Do not modify `markdown.js` just because a selector stopped matching — detection and Markdown serialization are intentionally separated.
 
-### ChatGPT
+### Quick test
 
-Try a response containing:
+Ask the AI to reply with the following, then copy it and paste into a Markdown editor:
 
-```markdown
+````markdown
 # Heading
 
 Normal paragraph.
@@ -162,9 +163,7 @@ Normal paragraph.
 - Item A
 - Item B
 
-**Bold**
-
-`inline code`
+**Bold** and `inline code`
 
 ```js
 console.log("test");
@@ -173,58 +172,38 @@ console.log("test");
 | A | B |
 |---|---|
 | 1 | 2 |
-```
+````
 
-Press `Ctrl + Q`, then paste into VS Code, Notepad++, Obsidian or another Markdown editor.
+## Contributing
 
-### Gemini / Grok / Claude
+Contributions are welcome!
 
-Run the same test.
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feat/my-change`.
+3. Commit your changes with a clear message.
+4. Open a pull request describing what changed and how you tested it.
 
-## ⚠️ UI changes
+When fixing a site, please keep changes inside the relevant `sites/*.js` adapter.
 
-AI websites can change their DOM at any time.
+## Roadmap
 
-If an AI stops working, first identify the affected adapter:
+**v1.2**
+- Wait for streaming responses to finish
+- Better code-language detection
+- Better table handling
+- Copy as Markdown / Plain Text modes
+- Popup showing the detected AI site
+- Debug mode showing which selector matched
 
-```text
-ChatGPT → sites/chatgpt.js
-Gemini  → sites/gemini.js
-Grok    → sites/grok.js
-Claude  → sites/claude.js
-```
+**v2**
+- Cross-AI transfer workflow
+- Windows global hotkey helper
+- Optional clipboard history
 
-Do not modify `markdown.js` just because an AI selector stopped matching. Detection and Markdown serialization are intentionally separated.
+## Changelog
 
-## 🔐 Permissions
+See [CHANGELOG.md](CHANGELOG.md).
 
-No API key.
+## License
 
-No backend.
-
-No analytics.
-
-No external network requests.
-
-No history/cookies/bookmarks access.
-
-No Administrator permission.
-
-The content script only matches the supported AI domains declared in `manifest.json`.
-
-## 🚀 Future
-
-Potential v1.2:
-
-- Wait for streaming response to finish.
-- Better code-language detection.
-- Better table handling.
-- Copy as Markdown / Plain Text modes.
-- Popup with current detected AI.
-- Debug mode showing which selector matched.
-
-Potential v2:
-
-- Cross-AI transfer workflow.
-- Windows global hotkey helper.
-- Optional clipboard history.
+Released under the [MIT License](LICENSE) © 2026 one-studio-space.

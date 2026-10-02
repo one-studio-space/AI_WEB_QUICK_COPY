@@ -1,5 +1,11 @@
 # Changelog
 
+All notable changes to this project are documented in this file.
+
+## 1.1.3
+- Changed the macOS shortcut from `Command+Q` to `Control+Q` (`MacCtrl+Q`). `Command+Q` quits the browser on macOS.
+- Rewrote README in English.
+
 ## 1.1.2
 - Fixed ChatGPT copying only "ChatGPT said:" screen-reader labels.
 - Strip `.sr-only` / "ChatGPT said:" / "You said:" headings in DOM clone.
