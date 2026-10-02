@@ -61,8 +61,28 @@
     makefile: "makefile", diff: "diff", lua: "lua", r: "r", dart: "dart",
     scala: "scala", perl: "perl", graphql: "graphql", vue: "vue",
     svelte: "svelte", gradle: "gradle", groovy: "groovy", nginx: "nginx",
-    latex: "latex", tex: "latex", vba: "vba", "objective-c": "objectivec"
+    latex: "latex", tex: "latex", vba: "vba", "objective-c": "objectivec",
+    haskell: "haskell", elixir: "elixir", erlang: "erlang", clojure: "clojure",
+    "f#": "fsharp", fsharp: "fsharp", ocaml: "ocaml", julia: "julia", zig: "zig",
+    nim: "nim", hcl: "hcl", terraform: "hcl", cmake: "cmake", nix: "nix",
+    assembly: "asm", asm: "asm", matlab: "matlab", solidity: "solidity",
+    prisma: "prisma", protobuf: "protobuf", csv: "csv", properties: "properties",
+    // Generic labels: remove them, but they say nothing about the language.
+    code: "", snippet: ""
   };
+
+  // Elements whose text is part of the answer itself. A language label is
+  // never taken from (or inside) one of these.
+  const CONTENT_TAGS = new Set([
+    "p", "li", "ul", "ol", "td", "th", "table", "blockquote",
+    "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i",
+    "a", "del", "s", "dt", "dd", "caption"
+  ]);
+
+  const tagOf = (element) => element.tagName.toLowerCase();
+
+  // A single short token such as "Haskell", "F#" or "C++".
+  const LABEL_TOKEN = /^[a-z][a-z0-9+#.\-]{0,15}$/i;
 
   const labelToLanguage = (text) => {
     const key = (text || "").trim().toLowerCase();
@@ -86,11 +106,73 @@
    * Work out each code block's language and remove the site's language label
    * so it is not copied as a stray line. Stores the result in data-aqc-lang.
    */
+  const hasContentTag = (element, stop) => {
+    for (let node = element; node && node !== stop; node = node.parentElement) {
+      if (CONTENT_TAGS.has(tagOf(node))) return true;
+    }
+    return false;
+  };
+
+  /**
+   * A label inside the code block's own wrapper: the wrapper must contain
+   * nothing but the code and one short text element placed before it
+   * (buttons are already stripped). Unknown single words are accepted here,
+   * because the wrapper holds nothing else.
+   */
+  const findWrapperLabel = (wrapper, body) => {
+    if (wrapper === body) return null;
+
+    const leaves = [...wrapper.querySelectorAll("*")].filter((element) => {
+      return (
+        element.children.length === 0 &&
+        !body.contains(element) &&
+        !element.contains(body) &&
+        (element.textContent || "").trim()
+      );
+    });
+
+    if (leaves.length !== 1) return null;
+
+    const [label] = leaves;
+    const text = label.textContent.trim();
+    const rest = (wrapper.textContent || "")
+      .replace(body.textContent || "", "")
+      .trim();
+
+    const precedesCode =
+      label.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING;
+
+    if (rest !== text || !precedesCode || hasContentTag(label, wrapper)) return null;
+
+    const known = labelToLanguage(text);
+    if (known !== null) return { label, language: known };
+    if (LABEL_TOKEN.test(text)) return { label, language: text.toLowerCase() };
+
+    return null;
+  };
+
+  // A label rendered as the element right before the code block,
+  // e.g. <div>Plain text</div><code>...</code>. Only known language names.
+  const findSiblingLabel = (node) => {
+    const previous = node.previousElementSibling;
+
+    if (!previous || CONTENT_TAGS.has(tagOf(previous))) return null;
+    if (previous.querySelector(["pre", "code", "img", ...CONTENT_TAGS].join(","))) return null;
+
+    const language = labelToLanguage(previous.textContent);
+    return language !== null ? { label: previous, language } : null;
+  };
+
+  /**
+   * Work out each code block's language and remove the site's language label
+   * so it is not copied as a stray line. Stores the result in data-aqc-lang.
+   * Never removes text from paragraphs, list items, table cells or quotes.
+   */
   const annotateCodeBlocks = (root) => {
     const blocks = findCodeBlocks(root);
 
     for (const block of blocks) {
-      const body = block.tagName.toLowerCase() === "pre"
+      const body = tagOf(block) === "pre"
         ? (block.querySelector("code") || block)
         : block;
 
@@ -101,32 +183,25 @@
         block.getAttribute("data-language") ||
         "";
 
-      // Look for a label in the block itself, then up to 3 ancestors,
-      // stopping before an ancestor that holds another code block.
-      let scope = block;
+      // Walk up from the block through wrappers that hold only this block.
+      let node = block;
 
-      for (let depth = 0; scope && scope !== root && depth < 4; depth++) {
-        if (scope !== block &&
-            blocks.filter((other) => scope.contains(other)).length > 1) {
+      for (let depth = 0; node && node !== root && depth < 4; depth++) {
+        if (node !== block &&
+            (CONTENT_TAGS.has(tagOf(node)) ||
+             blocks.some((other) => other !== block && node.contains(other)))) {
           break;
         }
 
-        const label = [...scope.querySelectorAll("*")].find((element) => {
-          return (
-            element.children.length === 0 &&
-            !body.contains(element) &&
-            !element.contains(body) &&
-            labelToLanguage(element.textContent) !== null
-          );
-        });
+        const found = findWrapperLabel(node, body) || findSiblingLabel(node);
 
-        if (label) {
-          language = language || labelToLanguage(label.textContent);
-          label.remove();
+        if (found) {
+          language = language || found.language;
+          found.label.remove();
           break;
         }
 
-        scope = scope.parentElement;
+        node = node.parentElement;
       }
 
       block.setAttribute("data-aqc-lang", language.toLowerCase());
@@ -150,6 +225,28 @@
     };
 
     annotateCodeBlocks(root);
+
+    // Keep spaces that sit inside the tag (<strong>Note: </strong>keep)
+    // outside the markers, where Markdown needs them.
+    const wrapInline = (raw, marker) => {
+      const content = raw.trim();
+      if (!content) return raw.replace(/\S/g, "");
+
+      const lead = raw.match(/^\s*/)[0] ? " " : "";
+      const trail = raw.match(/\s*$/)[0] ? " " : "";
+
+      return `${lead}${marker}${content}${marker}${trail}`;
+    };
+
+    // Code blocks can't live in a table cell; render them as inline code.
+    const inlineCode = (text) => {
+      return text
+        .replace(/\u0002(\d+)\u0002/g, (_, index) => {
+          const source = codeBlocks[Number(index)].source.trim().replace(/\s*\n\s*/g, " ");
+          return `\`${source}\``;
+        })
+        .replace(/\u0001/g, "");
+    };
 
     const walk = (node, context = {}) => {
       if (node.nodeType === Node.TEXT_NODE) {
@@ -187,6 +284,7 @@
 
       if (tag === "blockquote") {
         const content = serializeChildren(node)
+          .replace(/\n{3,}/g, "\n\n")
           .trim()
           .split("\n")
           .map((line) => line.trim() ? `> ${line}` : ">")
@@ -196,18 +294,15 @@
       }
 
       if (tag === "strong" || tag === "b") {
-        const content = serializeChildren(node).trim();
-        return content ? `**${content}**` : "";
+        return wrapInline(serializeChildren(node), "**");
       }
 
       if (tag === "em" || tag === "i") {
-        const content = serializeChildren(node).trim();
-        return content ? `*${content}*` : "";
+        return wrapInline(serializeChildren(node), "*");
       }
 
       if (tag === "del" || tag === "s" || tag === "strike") {
-        const content = serializeChildren(node).trim();
-        return content ? `~~${content}~~` : "";
+        return wrapInline(serializeChildren(node), "~~");
       }
 
       if (tag === "code" && node.hasAttribute("data-aqc-lang")) {
@@ -302,7 +397,13 @@
             (child.tagName.toLowerCase() === "ul" ||
              child.tagName.toLowerCase() === "ol")) {
           const nested = walk(child).trim();
-          if (nested) parts.push(`\n${nested}`);
+
+          if (nested) {
+            // Attach the sub-list directly under the item text (tight list).
+            const before = parts.join("").replace(/\s+$/, "");
+            parts.length = 0;
+            parts.push(before, `\n${nested}`);
+          }
         } else {
           parts.push(walk(child));
         }
@@ -317,7 +418,7 @@
 
       const parsed = rows.map((row) =>
         [...row.children].map((cell) =>
-          serializeChildren(cell)
+          inlineCode(serializeChildren(cell))
             .replace(/\n+/g, " ")
             .replace(/\|/g, "\\|")
             .trim()
@@ -358,10 +459,13 @@
     result = result.replace(
       /^(.*?)\u0002(\d+)\u0002$/gm,
       (_, lead, index) => {
-        const pad = " ".repeat(lead.length);
+        // Following lines keep quote markers ("> ") but replace
+        // list markers ("- ", "1. ") with spaces.
+        const pad = lead.replace(/(\d+\.|[-*+])(?= )/g, (marker) => " ".repeat(marker.length));
+        const blankPad = pad.replace(/[ \u0001]+$/, "");
 
         return renderFence(codeBlocks[Number(index)])
-          .map((line, i) => (i === 0 ? lead + line : (line ? pad + line : line)))
+          .map((line, i) => (i === 0 ? lead + line : (line ? pad + line : blankPad)))
           .join("\n");
       }
     );
