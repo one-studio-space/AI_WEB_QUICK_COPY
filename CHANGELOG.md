@@ -9,6 +9,13 @@ All notable changes to this project are documented in this file.
 - Multi-line code rendered without `<pre>` is copied as a fenced code block instead of inline code.
 - Ordered lists keep their start number (`<ol start="3">`).
 - Collapsed extra blank lines between paragraphs.
+- Language labels are only removed when there is evidence they are site UI (next to a copy button, inside the code block, or a label/header class); answer text such as file names or words like "Note", "Go" and "Python" is never deleted.
+- Code blocks inside blockquotes stay inside the quote; code in table cells becomes inline code.
+- Code is copied with normal line endings and regular spaces (no CRLF or non-breaking spaces).
+- Inline code containing backticks uses a longer delimiter so it renders correctly.
+- KaTeX math is copied as TeX (`$...$` / `$$...$$`) instead of duplicated text.
+- Selections spanning several list items keep their list markers and numbering.
+- Spaces inside bold/italic tags are kept (`**Note:** text`).
 
 ## 1.3.0
 - `Ctrl+Q` now copies the response you are reading (the one in the middle of the screen) instead of always the latest. At the bottom of a chat this is still the latest response.

@@ -115,8 +115,28 @@
       if (ancestor.nodeType !== Node.ELEMENT_NODE) ancestor = ancestor.parentElement;
 
       const pre = ancestor?.closest?.("pre");
+      const list = ancestor && ["ul", "ol"].includes(ancestor.tagName.toLowerCase())
+        ? ancestor
+        : null;
 
-      if (pre) {
+      if (list) {
+        // Selection spans several list items: keep them in a list,
+        // numbered from the first selected item.
+        const listClone = list.cloneNode(false);
+
+        if (list.tagName.toLowerCase() === "ol") {
+          let first = range.startContainer;
+          if (first.nodeType !== Node.ELEMENT_NODE) first = first.parentElement;
+          while (first && first.parentElement !== list) first = first.parentElement;
+
+          const start = parseInt(list.getAttribute("start"), 10);
+          const offset = first ? [...list.children].indexOf(first) : 0;
+          listClone.setAttribute("start", String((Number.isNaN(start) ? 1 : start) + Math.max(offset, 0)));
+        }
+
+        listClone.append(fragment);
+        container.append(listClone);
+      } else if (pre) {
         const preClone = pre.cloneNode(false);
         const code = pre.querySelector("code");
         const codeClone = code ? code.cloneNode(false) : null;
@@ -142,9 +162,45 @@
 
     const clone = element.cloneNode(true);
 
+    // KaTeX renders math twice (MathML + HTML). Keep the TeX source instead.
+    clone.querySelectorAll(".katex").forEach((math) => {
+      const tex = math.querySelector("annotation[encoding='application/x-tex']");
+      if (!tex) return;
+
+      const display = Boolean(math.closest(".katex-display"));
+      const source = (tex.textContent || "").trim();
+      const target = display ? math.closest(".katex-display") : math;
+
+      target.replaceWith(
+        document.createTextNode(display ? `\n\n$$${source}$$\n\n` : `$${source}$`)
+      );
+    });
+
+    // Text-only "Copy code" widgets that are not real buttons.
+    clone.querySelectorAll("span, div").forEach((node) => {
+      if (node.children.length === 0 &&
+          /^(copy|copy code|copied!?)$/i.test((node.textContent || "").trim())) {
+        node.setAttribute("data-aqc-ui-text", "");
+      }
+    });
+
+    const UI_SELECTOR =
+      "button, [role='button'], input, textarea, select, svg, [data-aqc-ui-text]";
+
+    // Before removing UI controls, mark the elements around them: a language
+    // label next to a copy button is site UI, not part of the answer.
+    clone.querySelectorAll(UI_SELECTOR).forEach((control) => {
+      let parent = control.parentElement;
+
+      for (let i = 0; parent && parent !== clone && i < 2; i++) {
+        parent.setAttribute("data-aqc-ui", "");
+        parent = parent.parentElement;
+      }
+    });
+
     // Strip UI chrome + screen-reader-only labels (e.g. "ChatGPT said:")
     clone.querySelectorAll(
-      "button, input, textarea, select, svg, img, video, audio, " +
+      UI_SELECTOR + ", img, video, audio, " +
       "[aria-hidden='true'], [data-testid*='toolbar'], " +
       "[class*='toolbar'], [class*='actions'], " +
       ".sr-only, [class*='sr-only'], [class*='screen-reader'], " +

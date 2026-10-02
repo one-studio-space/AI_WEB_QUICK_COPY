@@ -81,8 +81,15 @@
 
   const tagOf = (element) => element.tagName.toLowerCase();
 
-  // A single short token such as "Haskell", "F#" or "C++".
-  const LABEL_TOKEN = /^[a-z][a-z0-9+#.\-]{0,15}$/i;
+  // A single short token such as "Haskell", "F#" or "C++" (no dots, so
+  // file names like "main.py" never qualify).
+  const LABEL_TOKEN = /^[a-z][a-z0-9+#\-]{0,15}$/i;
+
+  // Class names sites use for code block headers / language labels.
+  const LABEL_CLASS = /(^|[\s_-])(lang|language|label|decoration|header|text-xs|font-mono)([\s_-]|$)/i;
+
+  // Inline elements that are answer content even outside CONTENT_TAGS.
+  const NEVER_LABEL_TAGS = new Set(["code", "kbd", "samp", "var", "mark"]);
 
   const labelToLanguage = (text) => {
     const key = (text || "").trim().toLowerCase();
@@ -103,63 +110,84 @@
   };
 
   /**
-   * Work out each code block's language and remove the site's language label
-   * so it is not copied as a stray line. Stores the result in data-aqc-lang.
+   * Evidence that an element is site UI rather than answer text:
+   * it sat next to a (now removed) copy button, lives inside the <pre>,
+   * or carries a label/header class name.
    */
-  const hasContentTag = (element, stop) => {
-    for (let node = element; node && node !== stop; node = node.parentElement) {
-      if (CONTENT_TAGS.has(tagOf(node))) return true;
+  const isSiteUi = (element, stop) => {
+    for (let node = element; node; node = node.parentElement) {
+      if (node.hasAttribute("data-aqc-ui") || node.querySelector("[data-aqc-ui]")) return true;
+      if (tagOf(node) === "pre") return true;
+      if (LABEL_CLASS.test(node.getAttribute("class") || "")) return true;
+      if (node === stop) break;
     }
     return false;
   };
 
   /**
-   * A label inside the code block's own wrapper: the wrapper must contain
-   * nothing but the code and one short text element placed before it
-   * (buttons are already stripped). Unknown single words are accepted here,
-   * because the wrapper holds nothing else.
+   * Decide whether `text` is the language label of a code block.
+   * Known language names need UI evidence, or must match the language
+   * already known from the code's class. Unknown words need UI evidence.
+   * Returns the language id, or null to leave the element alone.
    */
-  const findWrapperLabel = (wrapper, body) => {
+  const labelLanguage = (element, text, stop, classLanguage) => {
+    if (NEVER_LABEL_TAGS.has(tagOf(element))) return null;
+
+    const known = labelToLanguage(text);
+    const ui = isSiteUi(element, stop);
+
+    if (known !== null) {
+      if (ui) return known;
+      if (classLanguage && known === classLanguage.toLowerCase()) return known;
+      return null;
+    }
+
+    return ui && LABEL_TOKEN.test(text) ? text.toLowerCase() : null;
+  };
+
+  /**
+   * A label inside the code block's own wrapper (e.g. a header holding the
+   * language name, a file name and a copy button). The wrapper must not hold
+   * any answer content besides the code; only the element with label
+   * evidence is removed, other header text (file names) is kept.
+   */
+  const findWrapperLabel = (wrapper, body, classLanguage) => {
     if (wrapper === body) return null;
+
+    const outsideCode = (element) => !body.contains(element) && !element.contains(body);
+    const contentSelector = [...CONTENT_TAGS, ...NEVER_LABEL_TAGS].join(",");
+
+    if ([...wrapper.querySelectorAll(contentSelector)].some(outsideCode)) return null;
 
     const leaves = [...wrapper.querySelectorAll("*")].filter((element) => {
       return (
         element.children.length === 0 &&
-        !body.contains(element) &&
-        !element.contains(body) &&
+        outsideCode(element) &&
+        (element.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING) &&
         (element.textContent || "").trim()
       );
     });
 
-    if (leaves.length !== 1) return null;
-
-    const [label] = leaves;
-    const text = label.textContent.trim();
-    const rest = (wrapper.textContent || "")
-      .replace(body.textContent || "", "")
-      .trim();
-
-    const precedesCode =
-      label.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING;
-
-    if (rest !== text || !precedesCode || hasContentTag(label, wrapper)) return null;
-
-    const known = labelToLanguage(text);
-    if (known !== null) return { label, language: known };
-    if (LABEL_TOKEN.test(text)) return { label, language: text.toLowerCase() };
+    for (const label of leaves) {
+      const language = labelLanguage(label, label.textContent.trim(), wrapper, classLanguage);
+      if (language !== null) return { label, language };
+    }
 
     return null;
   };
 
   // A label rendered as the element right before the code block,
-  // e.g. <div>Plain text</div><code>...</code>. Only known language names.
-  const findSiblingLabel = (node) => {
+  // e.g. <div class="text-xs">Plain text</div><code>...</code>.
+  const findSiblingLabel = (node, classLanguage) => {
     const previous = node.previousElementSibling;
 
     if (!previous || CONTENT_TAGS.has(tagOf(previous))) return null;
-    if (previous.querySelector(["pre", "code", "img", ...CONTENT_TAGS].join(","))) return null;
+    if (previous.querySelector(["pre", "code", "img", ...NEVER_LABEL_TAGS, ...CONTENT_TAGS].join(","))) return null;
 
-    const language = labelToLanguage(previous.textContent);
+    const text = (previous.textContent || "").trim();
+    if (!text) return null;
+
+    const language = labelLanguage(previous, text, previous, classLanguage);
     return language !== null ? { label: previous, language } : null;
   };
 
@@ -186,14 +214,18 @@
       // Walk up from the block through wrappers that hold only this block.
       let node = block;
 
-      for (let depth = 0; node && node !== root && depth < 4; depth++) {
+      const classLanguage = language;
+
+      for (let depth = 0; node && node !== root && depth < 6; depth++) {
         if (node !== block &&
             (CONTENT_TAGS.has(tagOf(node)) ||
              blocks.some((other) => other !== block && node.contains(other)))) {
           break;
         }
 
-        const found = findWrapperLabel(node, body) || findSiblingLabel(node);
+        const found =
+          findWrapperLabel(node, body, classLanguage) ||
+          findSiblingLabel(node, classLanguage);
 
         if (found) {
           language = language || found.language;
@@ -208,6 +240,15 @@
     }
   };
 
+  // Inline code span; content with backticks gets a longer delimiter.
+  const codeSpan = (content) => {
+    const runs = content.match(/`+/g) || [];
+    if (!runs.length) return `\`${content}\``;
+
+    const ticks = "`".repeat(Math.max(...runs.map((run) => run.length)) + 1);
+    return `${ticks} ${content} ${ticks}`;
+  };
+
   const renderFence = ({ language, source }) => {
     // Use a longer fence if the code itself contains ```.
     const longest = Math.max(2, ...(source.match(/`+/g) || []).map((run) => run.length));
@@ -220,6 +261,8 @@
     const codeBlocks = [];
 
     const storeCode = (language, source) => {
+      // Normalize line endings and non-breaking spaces so code stays runnable.
+      source = source.replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ");
       codeBlocks.push({ language, source });
       return `\n\n${CODE}${codeBlocks.length - 1}${CODE}\n\n`;
     };
@@ -242,8 +285,7 @@
     const inlineCode = (text) => {
       return text
         .replace(/\u0002(\d+)\u0002/g, (_, index) => {
-          const source = codeBlocks[Number(index)].source.trim().replace(/\s*\n\s*/g, " ");
-          return `\`${source}\``;
+          return codeSpan(codeBlocks[Number(index)].source.trim().replace(/\s*\n\s*/g, " "));
         })
         .replace(/\u0001/g, "");
     };
@@ -310,8 +352,7 @@
       }
 
       if (tag === "code" && node.parentElement?.tagName.toLowerCase() !== "pre") {
-        const content = (node.textContent || "").replace(/`/g, "\\`");
-        return `\`${content}\``;
+        return codeSpan((node.textContent || "").replace(/\u00a0/g, " "));
       }
 
       if (tag === "a") {
