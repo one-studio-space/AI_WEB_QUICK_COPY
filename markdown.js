@@ -68,7 +68,7 @@
     assembly: "asm", asm: "asm", matlab: "matlab", solidity: "solidity",
     prisma: "prisma", protobuf: "protobuf", csv: "csv", properties: "properties",
     // Generic labels: remove them, but they say nothing about the language.
-    code: "", snippet: ""
+    code: "", snippet: "", "code snippet": ""
   };
 
   // Elements whose text is part of the answer itself. A language label is
@@ -84,9 +84,6 @@
   // A single short token such as "Haskell", "F#" or "C++" (no dots, so
   // file names like "main.py" never qualify).
   const LABEL_TOKEN = /^[a-z][a-z0-9+#\-]{0,15}$/i;
-
-  // Class names sites use for code block headers / language labels.
-  const LABEL_CLASS = /(^|[\s_-])(lang|language|label|decoration|header|text-xs|font-mono)([\s_-]|$)/i;
 
   // Inline elements that are answer content even outside CONTENT_TAGS.
   const NEVER_LABEL_TAGS = new Set(["code", "kbd", "samp", "var", "mark"]);
@@ -110,15 +107,14 @@
   };
 
   /**
-   * Evidence that an element is site UI rather than answer text:
-   * it sat next to a (now removed) copy button, lives inside the <pre>,
-   * or carries a label/header class name.
+   * Evidence that an element is site UI rather than answer text: within the
+   * code block's wrapper there was a copy button (marked before buttons are
+   * stripped), or the element lives inside the <pre>.
    */
   const isSiteUi = (element, stop) => {
     for (let node = element; node; node = node.parentElement) {
       if (node.hasAttribute("data-aqc-ui") || node.querySelector("[data-aqc-ui]")) return true;
       if (tagOf(node) === "pre") return true;
-      if (LABEL_CLASS.test(node.getAttribute("class") || "")) return true;
       if (node === stop) break;
     }
     return false;
@@ -126,23 +122,17 @@
 
   /**
    * Decide whether `text` is the language label of a code block.
-   * Known language names need UI evidence, or must match the language
-   * already known from the code's class. Unknown words need UI evidence.
-   * Returns the language id, or null to leave the element alone.
+   * Returns the language id, or null to leave the element alone:
+   * answer text is never removed without copy-button evidence.
    */
-  const labelLanguage = (element, text, stop, classLanguage) => {
+  const labelLanguage = (element, text, stop) => {
     if (NEVER_LABEL_TAGS.has(tagOf(element))) return null;
+    if (!isSiteUi(element, stop)) return null;
 
     const known = labelToLanguage(text);
-    const ui = isSiteUi(element, stop);
+    if (known !== null) return known;
 
-    if (known !== null) {
-      if (ui) return known;
-      if (classLanguage && known === classLanguage.toLowerCase()) return known;
-      return null;
-    }
-
-    return ui && LABEL_TOKEN.test(text) ? text.toLowerCase() : null;
+    return LABEL_TOKEN.test(text) ? text.toLowerCase() : null;
   };
 
   /**
@@ -151,7 +141,7 @@
    * any answer content besides the code; only the element with label
    * evidence is removed, other header text (file names) is kept.
    */
-  const findWrapperLabel = (wrapper, body, classLanguage) => {
+  const findWrapperLabel = (wrapper, body) => {
     if (wrapper === body) return null;
 
     const outsideCode = (element) => !body.contains(element) && !element.contains(body);
@@ -169,7 +159,7 @@
     });
 
     for (const label of leaves) {
-      const language = labelLanguage(label, label.textContent.trim(), wrapper, classLanguage);
+      const language = labelLanguage(label, label.textContent.trim(), wrapper);
       if (language !== null) return { label, language };
     }
 
@@ -178,7 +168,7 @@
 
   // A label rendered as the element right before the code block,
   // e.g. <div class="text-xs">Plain text</div><code>...</code>.
-  const findSiblingLabel = (node, classLanguage) => {
+  const findSiblingLabel = (node, body) => {
     const previous = node.previousElementSibling;
 
     if (!previous || CONTENT_TAGS.has(tagOf(previous))) return null;
@@ -187,7 +177,8 @@
     const text = (previous.textContent || "").trim();
     if (!text) return null;
 
-    const language = labelLanguage(previous, text, previous, classLanguage);
+    // The label element itself (or its children) held the copy button.
+    const language = labelLanguage(previous, text, previous);
     return language !== null ? { label: previous, language } : null;
   };
 
@@ -214,8 +205,6 @@
       // Walk up from the block through wrappers that hold only this block.
       let node = block;
 
-      const classLanguage = language;
-
       for (let depth = 0; node && node !== root && depth < 6; depth++) {
         if (node !== block &&
             (CONTENT_TAGS.has(tagOf(node)) ||
@@ -223,9 +212,7 @@
           break;
         }
 
-        const found =
-          findWrapperLabel(node, body, classLanguage) ||
-          findSiblingLabel(node, classLanguage);
+        const found = findWrapperLabel(node, body) || findSiblingLabel(node, body);
 
         if (found) {
           language = language || found.language;

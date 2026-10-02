@@ -99,6 +99,45 @@
    * A selection inside a code block keeps its <pre><code> wrapper
    * so it is still serialized as a fenced block.
    */
+  // Containers whose structure must be kept around a selection.
+  const STRUCTURE_TAGS = new Set([
+    "li", "ul", "ol", "blockquote", "table", "thead", "tbody", "tfoot", "tr"
+  ]);
+
+  const tagName = (element) => element.tagName.toLowerCase();
+
+  // The element where a range starts (the node at the offset when the
+  // range starts on an element boundary).
+  const rangeStartElement = (range) => {
+    const { startContainer, startOffset } = range;
+
+    if (startContainer.nodeType === Node.ELEMENT_NODE) {
+      const child = startContainer.childNodes[startOffset];
+      return child?.nodeType === Node.ELEMENT_NODE ? child : startContainer;
+    }
+
+    return startContainer.parentElement;
+  };
+
+  // Number of the item of `list` the range starts in, honouring start="".
+  const startNumber = (list, startElement) => {
+    const start = parseInt(list.getAttribute("start"), 10);
+    let item = startElement;
+
+    while (item && item.parentElement !== list) item = item.parentElement;
+
+    const items = [...list.children].filter((child) => tagName(child) === "li");
+    const offset = item ? Math.max(items.indexOf(item), 0) : 0;
+
+    return (Number.isNaN(start) ? 1 : start) + offset;
+  };
+
+  /**
+   * Return the current page selection as a detached element, or null.
+   * The selection keeps its surrounding structure: a code block stays a
+   * <pre><code>, list items stay in their (correctly numbered) list,
+   * quotes and table rows stay in their quote / table.
+   */
   root.getSelectionElement = () => {
     const selection = window.getSelection();
 
@@ -110,33 +149,32 @@
     for (let i = 0; i < selection.rangeCount; i++) {
       const range = selection.getRangeAt(i);
       const fragment = range.cloneContents();
+      const startElement = rangeStartElement(range);
 
       let ancestor = range.commonAncestorContainer;
-      if (ancestor.nodeType !== Node.ELEMENT_NODE) ancestor = ancestor.parentElement;
+      const withinOneText = ancestor.nodeType !== Node.ELEMENT_NODE;
+      if (withinOneText) ancestor = ancestor.parentElement;
+
+      // Ordered lists inside the fragment that the selection starts in
+      // are partial copies: renumber them from the first selected item.
+      const startLists = [];
+      for (let node = startElement; node && node !== ancestor; node = node.parentElement) {
+        if (["ul", "ol"].includes(tagName(node))) startLists.unshift(node);
+      }
+
+      let copy = fragment.firstChild;
+      for (const list of startLists) {
+        while (copy && !(copy.nodeType === Node.ELEMENT_NODE && tagName(copy) === tagName(list))) {
+          copy = copy.firstChild;
+        }
+        if (!copy) break;
+        if (tagName(list) === "ol") copy.setAttribute("start", String(startNumber(list, startElement)));
+        copy = copy.firstChild;
+      }
 
       const pre = ancestor?.closest?.("pre");
-      const list = ancestor && ["ul", "ol"].includes(ancestor.tagName.toLowerCase())
-        ? ancestor
-        : null;
 
-      if (list) {
-        // Selection spans several list items: keep them in a list,
-        // numbered from the first selected item.
-        const listClone = list.cloneNode(false);
-
-        if (list.tagName.toLowerCase() === "ol") {
-          let first = range.startContainer;
-          if (first.nodeType !== Node.ELEMENT_NODE) first = first.parentElement;
-          while (first && first.parentElement !== list) first = first.parentElement;
-
-          const start = parseInt(list.getAttribute("start"), 10);
-          const offset = first ? [...list.children].indexOf(first) : 0;
-          listClone.setAttribute("start", String((Number.isNaN(start) ? 1 : start) + Math.max(offset, 0)));
-        }
-
-        listClone.append(fragment);
-        container.append(listClone);
-      } else if (pre) {
+      if (pre) {
         const preClone = pre.cloneNode(false);
         const code = pre.querySelector("code");
         const codeClone = code ? code.cloneNode(false) : null;
@@ -149,9 +187,26 @@
         }
 
         container.append(preClone);
-      } else {
-        container.append(fragment);
+        continue;
       }
+
+      // A few words inside one paragraph or list item: copy them as is.
+      let wrapped = fragment;
+
+      if (!withinOneText) {
+        for (let node = ancestor; node && STRUCTURE_TAGS.has(tagName(node)); node = node.parentElement) {
+          const shell = node.cloneNode(false);
+
+          if (tagName(node) === "ol") {
+            shell.setAttribute("start", String(startNumber(node, startElement)));
+          }
+
+          shell.append(wrapped);
+          wrapped = shell;
+        }
+      }
+
+      container.append(wrapped);
     }
 
     return container;
@@ -176,9 +231,11 @@
       );
     });
 
-    // Text-only "Copy code" widgets that are not real buttons.
+    // Text-only "Copy code" widgets that are not real buttons
+    // (never inside answer text such as list items or table cells).
     clone.querySelectorAll("span, div").forEach((node) => {
       if (node.children.length === 0 &&
+          !node.closest("p, li, td, th, blockquote, h1, h2, h3, h4, h5, h6") &&
           /^(copy|copy code|copied!?)$/i.test((node.textContent || "").trim())) {
         node.setAttribute("data-aqc-ui-text", "");
       }
@@ -187,9 +244,10 @@
     const UI_SELECTOR =
       "button, [role='button'], input, textarea, select, svg, [data-aqc-ui-text]";
 
-    // Before removing UI controls, mark the elements around them: a language
-    // label next to a copy button is site UI, not part of the answer.
-    clone.querySelectorAll(UI_SELECTOR).forEach((control) => {
+    // Before removing UI controls, mark the elements around buttons: a
+    // language label next to a copy button is site UI, not part of the
+    // answer. Icons (svg) alone are not evidence; callouts use them too.
+    clone.querySelectorAll("button, [role='button'], [data-aqc-ui-text]").forEach((control) => {
       let parent = control.parentElement;
 
       for (let i = 0; parent && parent !== clone && i < 2; i++) {
