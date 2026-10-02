@@ -18,6 +18,7 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the assistant 
 - [Privacy & Permissions](#privacy--permissions)
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
+- [Known Limitations](#known-limitations)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
 - [Changelog](#changelog)
@@ -26,7 +27,7 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the assistant 
 ## Features
 
 - **One shortcut** — press `Ctrl+Q` to copy the AI response you are reading. At the bottom of a chat that is the latest one; scroll up and it copies the older answer on screen.
-- **Copy just a part** — highlight any passage and press `Ctrl+Q` to copy only that, still as Markdown and labeled as an excerpt.
+- **Copy just a part** — highlight any passage and press `Ctrl+Q` to copy only that, still as Markdown and labeled as an excerpt. List markers, numbering, quotes and tables around the selection are kept.
 - **Know who wrote what** — each copy is labeled with the AI's name (and an optional role) at the top and bottom, so answers from different AIs stay distinguishable in one file.
 - **Real Markdown, not plain text** — the response DOM is serialized into Markdown:
 
@@ -39,12 +40,15 @@ AI Quick Copy is a lightweight Chrome / Edge extension that grabs the assistant 
   | `em` / `i` | `*italic*` |
   | `del` / `s` | `~~strike~~` |
   | `code` | `` `inline code` `` |
-  | `pre > code` | fenced code block (with language when available) |
+  | `pre > code` | fenced code block with its language (`` ```python ``) |
+  | KaTeX math | `$x^2$` / `$$...$$` (TeX source) |
   | `a` | `[text](url)` |
   | `table` | Markdown table |
   | `hr` | `---` |
 
-- **Clean output** — buttons, toolbars, icons and screen-reader labels (e.g. "ChatGPT said:") are stripped.
+- **Code you can run** — indentation, tabs and blank lines inside code blocks are kept exactly; Windows line endings and non-breaking spaces are normalized.
+- **Structure kept** — nested lists keep their levels, code blocks stay inside their list item or quote, numbered lists keep their numbers (e.g. starting at 3).
+- **Clean output** — copy buttons, toolbars, icons and screen-reader labels (e.g. "ChatGPT said:") are stripped. Language labels shown above code blocks ("PowerShell", "Bash"...) become the code block's language instead of a stray line.
 - **Resilient detection** — each site has its own adapter with multiple selectors and heuristic fallbacks.
 - **100% local** — no server, no analytics, no network requests.
 
@@ -224,6 +228,13 @@ console.log("test");
 | 1 | 2 |
 ````
 
+## Known Limitations
+
+- **ChatGPT one-line code blocks** may be copied as a "Plain text" line followed by inline code instead of a fenced block. No content is lost.
+- **Language labels without a copy button nearby** are kept as a plain text line. This is deliberate: text is only removed when it sits next to the code block's copy button, to avoid deleting answer words.
+- **Math without a TeX source** (rare) is copied as plain text, e.g. `r²` becomes `r2`.
+- **Site redesigns** can break response detection on one site until its adapter is updated. Selection copying (highlight + `Ctrl+Q`) keeps working in the meantime.
+
 ## Contributing
 
 Contributions are welcome!
@@ -237,10 +248,9 @@ When fixing a site, please keep changes inside the relevant `sites/*.js` adapter
 
 ## Roadmap
 
-**v1.2**
+**Next**
+- Fenced blocks for ChatGPT one-line code
 - Wait for streaming responses to finish
-- Better code-language detection
-- Better table handling
 - Copy as Markdown / Plain Text modes
 - Popup showing the detected AI site
 - Debug mode showing which selector matched
