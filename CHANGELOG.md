@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.1
+- Fixed code indentation being stripped inside code blocks (Python, YAML, etc. are now copied runnable).
+- Fixed nested lists being flattened; sub-items and code blocks inside list items keep their indentation.
+- Code block language labels shown by sites ("PowerShell", "Bash", "Plain text"...) become the fence language instead of a stray line.
+- Multi-line code rendered without `<pre>` is copied as a fenced code block instead of inline code.
+- Ordered lists keep their start number (`<ol start="3">`).
+- Collapsed extra blank lines between paragraphs.
+
 ## 1.3.0
 - `Ctrl+Q` now copies the response you are reading (the one in the middle of the screen) instead of always the latest. At the bottom of a chat this is still the latest response.
 - Highlight text and press `Ctrl+Q` to copy only that passage, labeled as an excerpt. Partial selections inside code blocks stay fenced code blocks.
